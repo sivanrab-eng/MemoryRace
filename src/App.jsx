@@ -357,13 +357,85 @@ export default function SchoolMemoryRace() {
   const saveRecord = async (timeLeft) => {
     const newRec = { time: timeLeft, date: new Date().toLocaleDateString() };
     const updated = [...records, newRec].sort((a, b) => b.time - a.time).slice(0, 20);
+    const isNew = records.length === 0 || timeLeft > records[0]?.time;
+    setIsNewRecord(isNew);
     setRecords(updated);
+    updateStreak();
     try { await window.storage.set("leaderboard", JSON.stringify(updated)); } catch { }
   };
 
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [isNewRecord, setIsNewRecord] = useState(false);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  // Daily streak
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await window.storage.get("streak");
+        if (res) {
+          const data = JSON.parse(res.value);
+          const today = new Date().toDateString();
+          const yesterday = new Date(Date.now() - 86400000).toDateString();
+          if (data.lastDay === today) setStreak(data.count);
+          else if (data.lastDay === yesterday) setStreak(data.count);
+          else setStreak(0);
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const updateStreak = async () => {
+    try {
+      const res = await window.storage.get("streak");
+      const today = new Date().toDateString();
+      let count = 1;
+      if (res) {
+        const data = JSON.parse(res.value);
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        if (data.lastDay === today) count = data.count;
+        else if (data.lastDay === yesterday) count = data.count + 1;
+      }
+      setStreak(count);
+      await window.storage.set("streak", JSON.stringify({ count, lastDay: today }));
+    } catch {}
+  };
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") setDeferredPrompt(null);
+    } else {
+      // Show manual instructions
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        alert("📲 להתקנה:\n1. לחצ/י על כפתור השיתוף (⬆️) בתחתית המסך\n2. גלול/י למטה ולחצ/י 'הוסף למסך הבית'\n3. לחצ/י 'הוסף'");
+      } else {
+        alert("📲 להתקנה:\n1. לחצ/י על שלוש הנקודות (⋮) בפינה\n2. לחצ/י 'הוסף למסך הבית' או 'התקן אפליקציה'\n3. אשר/י את ההתקנה");
+      }
+    }
+  };
+
+  // Share app (for menu - שתף חבר)
+  const shareApp = () => {
+    const msg = encodeURIComponent(
+      `🎒 גילית כבר את Memory Race?\n\nמשחק זיכרון ממכר שמשפר את הראש! 🧠✨\nאני כבר מכור/ה, תנסה גם!\n\n📲 שחק/י עכשיו: ${window.location.href}`
+    );
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+  };
+
+  // Challenge friend (for game screens - אתגר חבר)
   const sendChallenge = (challengeScore, challengeTime) => {
     const msg = encodeURIComponent(
-      `🎒🔥 אתגר Memory Race!\n\nסיימתי את המשחק עם ${challengeScore} נקודות ונשארו לי ${challengeTime} שניות!\n\n😏 חושב/ת שאת/ה יכול/ה לנצח אותי?\n\n🔗 בוא/י לשחק: ${window.location.href}`
+      `🎒🔥 אתגר Memory Race!\n\nסיימתי עם ${challengeScore} נקודות ו-${challengeTime} שניות על השעון! ⏱️\n\n😏 בטוח/ה שאת/ה יכול/ה לנצח אותי?\nבוא/י נראה מי המוח פה 🧠\n\n🔗 ${window.location.href}`
     );
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
@@ -582,10 +654,7 @@ export default function SchoolMemoryRace() {
             </button>
 
             <button
-              onClick={() => {
-                /* PWA install or app store link placeholder */
-                alert("הורדת אפליקציה תהיה זמינה בקרוב!");
-              }}
+              onClick={handleInstall}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 margin: "14px auto 0", padding: "10px 28px",
@@ -599,7 +668,7 @@ export default function SchoolMemoryRace() {
             </button>
 
             <button
-              onClick={() => sendChallenge(score, 0)}
+              onClick={shareApp}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 margin: "10px auto 0", padding: "10px 28px",
@@ -609,8 +678,20 @@ export default function SchoolMemoryRace() {
                 fontFamily: "'Fredoka', sans-serif",
               }}
             >
-              🤝 אתגר חבר
+              📤 שתף חבר
             </button>
+
+            {streak > 0 && (
+              <div style={{
+                margin: "18px auto 0", padding: "8px 20px",
+                borderRadius: 20, background: "rgba(255,215,0,0.1)",
+                border: "1px solid rgba(255,215,0,0.25)",
+                color: "#FFD700", fontSize: 14, fontWeight: 600,
+                fontFamily: "'Fredoka', sans-serif", textAlign: "center",
+              }}>
+                🔥 רצף יומי: {streak} {streak === 1 ? "יום" : "ימים"}
+              </div>
+            )}
           </div>
 
           {/* Floating school items */}
@@ -742,6 +823,17 @@ export default function SchoolMemoryRace() {
           padding: 24, fontFamily: "'Fredoka', sans-serif", textAlign: "center",
         }}>
           <div style={{ fontSize: 72, marginBottom: 8 }}>🏆</div>
+          {isNewRecord && (
+            <div style={{
+              display: "inline-block", padding: "6px 18px", borderRadius: 20,
+              background: "linear-gradient(135deg, #FFD700, #FFA000)",
+              color: "#3d2500", fontSize: 14, fontWeight: 700,
+              fontFamily: "'Fredoka', sans-serif", marginBottom: 10,
+              animation: "pulse 1s ease-in-out infinite",
+            }}>
+              🎉 שיא חדש!
+            </div>
+          )}
           <h1 style={{ color: "#FFD700", fontSize: "clamp(26px, 6vw, 40px)", margin: "0 0 8px" }}>
             Amazing!
           </h1>
@@ -826,6 +918,19 @@ export default function SchoolMemoryRace() {
             }}
           >
             Next Level →
+          </button>
+          <button
+            onClick={() => sendChallenge(score, time)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              margin: "12px auto 0", padding: "10px 28px",
+              borderRadius: 30, border: "2px solid #60a5fa",
+              background: "rgba(96,165,250,0.1)",
+              color: "#60a5fa", fontSize: 14, fontWeight: 600,
+              cursor: "pointer", fontFamily: "'Fredoka', sans-serif",
+            }}
+          >
+            🤝 אתגר חבר
           </button>
         </div>
       </>
