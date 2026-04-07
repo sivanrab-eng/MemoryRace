@@ -28,6 +28,15 @@ const ITEMS = {
   Bell: { emoji: "🔔", color: "#FFD54F" },
 };
 
+const HEBREW = {
+  Book: "סֵפֶר", Pen: "עֵט", Chair: "כִּסֵּא", Teacher: "מוֹרָה",
+  Student: "תַּלְמִיד", Table: "שׁוּלְחָן", Bag: "תִּיק", Pencil: "עִפָּרוֹן",
+  Classroom: "כִּתָּה", Board: "לוּחַ", Eraser: "מַחָק", Sharpener: "מְחַדֵּד",
+  Ruler: "סַרְגֵּל", Scissors: "מִסְפָּרַיִם", Glue: "דֶּבֶק", Notebook: "מַחְבֶּרֶת",
+  Computer: "מַחְשֵׁב", Library: "סִפְרִיָּה", Playground: "מִגְרָשׁ", Lunchbox: "קוּפְסַת אוֹכֶל",
+  Colors: "צְבָעִים", Map: "מַפָּה", Clock: "שָׁעוֹן", Bell: "פַּעֲמוֹן",
+};
+
 const LEVELS = [
   { id: 1, label: "Level 1 – Warm Up", words: ["Book", "Pen", "Chair"], cols: 3 },
   { id: 2, label: "Level 2", words: ["Teacher", "Student", "Table", "Bag", "Pencil"], cols: 5 },
@@ -147,14 +156,14 @@ function Card({ card, isFlipped, isMatched, onClick, index, preview }) {
             transition: "all 0.3s",
           }}
         >
-          <span style={{ fontSize: "clamp(26px, 5vw, 48px)", lineHeight: 1, filter: isMatched ? "drop-shadow(0 0 6px rgba(0,0,0,0.2))" : "none" }}>
+          <span style={{ fontSize: "clamp(20px, 4vw, 34px)", lineHeight: 1, filter: isMatched ? "drop-shadow(0 0 6px rgba(0,0,0,0.2))" : "none" }}>
             {item.emoji}
           </span>
           <span
             style={{
-              fontSize: "clamp(10px, 1.8vw, 15px)",
+              fontSize: "clamp(13px, 2.8vw, 20px)",
               fontFamily: "'Fredoka', sans-serif",
-              fontWeight: 600,
+              fontWeight: 700,
               color: isMatched ? item.color : "#3d3425",
               letterSpacing: 0.5,
               textAlign: "center",
@@ -162,6 +171,18 @@ function Card({ card, isFlipped, isMatched, onClick, index, preview }) {
             }}
           >
             {card.word}
+          </span>
+          <span
+            style={{
+              fontSize: "clamp(9px, 1.6vw, 13px)",
+              fontFamily: "'Fredoka', sans-serif",
+              fontWeight: 600,
+              color: isMatched ? `${item.color}aa` : "#888",
+              textAlign: "center",
+              direction: "rtl",
+            }}
+          >
+            {HEBREW[card.word]}
           </span>
         </div>
       </div>
@@ -316,6 +337,8 @@ export default function SchoolMemoryRace() {
   const [bonusAnim, setBonusAnim] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [records, setRecords] = useState([]);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const CONTINUE_COST = 200;
 
   const timerRef = useRef(null);
   const lockRef = useRef(false);
@@ -336,6 +359,29 @@ export default function SchoolMemoryRace() {
     const updated = [...records, newRec].sort((a, b) => b.time - a.time).slice(0, 20);
     setRecords(updated);
     try { await window.storage.set("leaderboard", JSON.stringify(updated)); } catch { }
+  };
+
+  const sendChallenge = (challengeScore, challengeTime) => {
+    const msg = encodeURIComponent(
+      `🎒🔥 אתגר Memory Race!\n\nסיימתי את המשחק עם ${challengeScore} נקודות ונשארו לי ${challengeTime} שניות!\n\n😏 חושב/ת שאת/ה יכול/ה לנצח אותי?\n\n🔗 בוא/י לשחק: ${window.location.href}`
+    );
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+  };
+
+  const handleContinue = (method) => {
+    if (method === "points") {
+      if (score < CONTINUE_COST) return;
+      setScore((s) => s - CONTINUE_COST);
+    }
+    if (method === "challenge") {
+      sendChallenge(score, 0);
+    }
+    if (method === "ad") {
+      /* placeholder for rewarded ad */
+    }
+    // Resume game with 15 extra seconds
+    setTime(15);
+    setScreen("game");
   };
 
   // Timer
@@ -534,6 +580,37 @@ export default function SchoolMemoryRace() {
             >
               🏆 Leaderboard
             </button>
+
+            <button
+              onClick={() => {
+                /* PWA install or app store link placeholder */
+                alert("הורדת אפליקציה תהיה זמינה בקרוב!");
+              }}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                margin: "14px auto 0", padding: "10px 28px",
+                borderRadius: 30, border: "2px solid #4ade80",
+                background: "linear-gradient(135deg, rgba(74,222,128,0.12), rgba(74,222,128,0.04))",
+                color: "#4ade80", fontSize: 15, fontWeight: 600, cursor: "pointer",
+                fontFamily: "'Fredoka', sans-serif",
+              }}
+            >
+              📲 הורדת אפליקציה
+            </button>
+
+            <button
+              onClick={() => sendChallenge(score, 0)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                margin: "10px auto 0", padding: "10px 28px",
+                borderRadius: 30, border: "2px solid #60a5fa",
+                background: "linear-gradient(135deg, rgba(96,165,250,0.12), rgba(96,165,250,0.04))",
+                color: "#60a5fa", fontSize: 15, fontWeight: 600, cursor: "pointer",
+                fontFamily: "'Fredoka', sans-serif",
+              }}
+            >
+              🤝 אתגר חבר
+            </button>
           </div>
 
           {/* Floating school items */}
@@ -566,22 +643,81 @@ export default function SchoolMemoryRace() {
           minHeight: "100vh",
           background: "linear-gradient(160deg, #4a1a1a, #2d0a0a)",
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: 24, fontFamily: "'Fredoka', sans-serif",
+          padding: 24, fontFamily: "'Fredoka', sans-serif", textAlign: "center",
         }}>
-          <div style={{ fontSize: 64, marginBottom: 12 }}>⏰</div>
-          <h1 style={{ color: "#ff6b6b", fontSize: 32, margin: "0 0 8px" }}>Time's Up!</h1>
-          <p style={{ color: "#ffffffaa", fontSize: 18, margin: "0 0 8px" }}>
+          <div style={{ fontSize: 56, marginBottom: 10 }}>⏰</div>
+          <h1 style={{ color: "#ff6b6b", fontSize: 28, margin: "0 0 6px" }}>Time's Up!</h1>
+          <p style={{ color: "#ffffffaa", fontSize: 16, margin: "0 0 4px" }}>
             You reached {level.label}
           </p>
-          <p style={{ color: "#FFD700", fontSize: 22, margin: "0 0 28px" }}>
+          <p style={{ color: "#FFD700", fontSize: 20, margin: "0 0 20px" }}>
             Score: {score}
           </p>
+
+          {/* Continue / Buy Lives */}
+          <div style={{
+            background: "rgba(255,255,255,0.06)",
+            borderRadius: 20, padding: "18px 20px",
+            border: "2px solid rgba(255,68,255,0.2)",
+            marginBottom: 18, width: "100%", maxWidth: 300,
+          }}>
+            <h3 style={{ color: "#fff", fontSize: 16, margin: "0 0 4px", fontFamily: "'Fredoka', sans-serif" }}>💖 רוצה להמשיך?</h3>
+            <p style={{ color: "#ffffff66", fontSize: 12, margin: "0 0 14px", fontFamily: "'Fredoka', sans-serif" }}>בחר דרך לקבל חיים נוספים</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button
+                onClick={() => handleContinue("points")}
+                disabled={score < CONTINUE_COST}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "12px 20px", borderRadius: 14, border: "none",
+                  background: score >= CONTINUE_COST
+                    ? "linear-gradient(135deg, #FFD700, #FFA000)"
+                    : "rgba(255,255,255,0.08)",
+                  color: score >= CONTINUE_COST ? "#3d2500" : "#ffffff44",
+                  fontSize: 14, fontWeight: 700, cursor: score >= CONTINUE_COST ? "pointer" : "not-allowed",
+                  fontFamily: "'Fredoka', sans-serif", width: "100%",
+                }}
+              >
+                ⭐ השתמש ב-{CONTINUE_COST} נקודות
+              </button>
+
+              <button
+                onClick={() => handleContinue("challenge")}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "12px 20px", borderRadius: 14,
+                  border: "2px solid #60a5fa",
+                  background: "rgba(96,165,250,0.1)",
+                  color: "#60a5fa", fontSize: 14, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "'Fredoka', sans-serif", width: "100%",
+                }}
+              >
+                🤝 אתגר חבר וקבל חיים
+              </button>
+
+              <button
+                onClick={() => handleContinue("ad")}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "12px 20px", borderRadius: 14,
+                  border: "2px solid #a78bfa",
+                  background: "rgba(167,139,250,0.1)",
+                  color: "#a78bfa", fontSize: 14, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "'Fredoka', sans-serif", width: "100%",
+                }}
+              >
+                🎬 צפה בפרסומת
+              </button>
+            </div>
+          </div>
+
           <button
             onClick={() => setScreen("menu")}
             style={{
               padding: "14px 40px", borderRadius: 50, border: "none",
               background: "linear-gradient(135deg, #FFD700, #FFA000)",
-              color: "#3d2500", fontSize: 18, fontWeight: 700, cursor: "pointer",
+              color: "#3d2500", fontSize: 17, fontWeight: 700, cursor: "pointer",
               fontFamily: "'Fredoka', sans-serif",
               boxShadow: "0 6px 20px rgba(255,160,0,0.3)",
             }}
@@ -607,7 +743,7 @@ export default function SchoolMemoryRace() {
         }}>
           <div style={{ fontSize: 72, marginBottom: 8 }}>🏆</div>
           <h1 style={{ color: "#FFD700", fontSize: "clamp(26px, 6vw, 40px)", margin: "0 0 8px" }}>
-            Amazing! You Won!
+            Amazing!
           </h1>
           <p style={{ color: "#ffffffcc", fontSize: 18, margin: "0 0 6px" }}>
             Time Remaining: <strong style={{ color: "#4ade80" }}>{time}s</strong>
@@ -638,6 +774,19 @@ export default function SchoolMemoryRace() {
               🏆 Leaderboard
             </button>
           </div>
+          <button
+            onClick={() => sendChallenge(score, time)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              margin: "14px auto 0", padding: "14px 36px",
+              borderRadius: 50, border: "2px solid #4ade80",
+              background: "linear-gradient(135deg, rgba(74,222,128,0.15), rgba(74,222,128,0.05))",
+              color: "#4ade80", fontSize: 17, fontWeight: 600, cursor: "pointer",
+              fontFamily: "'Fredoka', sans-serif",
+            }}
+          >
+            🤝 אתגר חבר!
+          </button>
           {showLeaderboard && <Leaderboard records={records} onClose={() => setShowLeaderboard(false)} />}
         </div>
       </>
