@@ -322,7 +322,7 @@ function Leaderboard({ records, onClose }) {
 }
 
 /* ─── MAIN APP ─── */
-export default function SchoolMemoryRace() {
+export default function MemoryRace() {
   const [screen, setScreen] = useState("menu"); // menu | game | levelComplete | gameOver | victory
   const [levelIdx, setLevelIdx] = useState(0);
   const [cards, setCards] = useState([]);
@@ -613,10 +613,10 @@ export default function SchoolMemoryRace() {
               textShadow: "0 2px 10px rgba(0,0,0,0.3)",
               letterSpacing: 1,
             }}>
-              School Memory Race
+              Memory Race
             </h1>
             <p style={{ color: "#ffffff99", fontSize: "clamp(14px, 3vw, 18px)", margin: "0 0 36px" }}>
-              Match the school items before time runs out!
+              Match the items before time runs out!
             </p>
 
             <button
@@ -690,7 +690,7 @@ export default function SchoolMemoryRace() {
             )}
           </div>
 
-          {/* Floating school items */}
+          {/* Floating items */}
           {["📖", "✏️", "✂️", "📏", "🎨", "🔔"].map((e, i) => (
             <div key={i} style={{
               position: "absolute",

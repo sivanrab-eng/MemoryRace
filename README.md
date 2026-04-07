@@ -1,6 +1,6 @@
 # MemoryRace 🎒
 
-A school-themed memory card game built with React.
+A memory card game built with React.
 
 **Play it here:** [https://sivanrab-eng.github.io/MemoryRace/](https://sivanrab-eng.github.io/MemoryRace/)
 
