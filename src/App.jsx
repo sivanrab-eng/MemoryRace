@@ -346,12 +346,10 @@ export default function SchoolMemoryRace() {
 
   // Load leaderboard
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await window.storage.get("leaderboard");
-        if (res) setRecords(JSON.parse(res.value));
-      } catch { }
-    })();
+    try {
+      const res = localStorage.getItem("leaderboard");
+      if (res) setRecords(JSON.parse(res));
+    } catch { }
   }, []);
 
   const saveRecord = async (timeLeft) => {
@@ -361,7 +359,7 @@ export default function SchoolMemoryRace() {
     setIsNewRecord(isNew);
     setRecords(updated);
     updateStreak();
-    try { await window.storage.set("leaderboard", JSON.stringify(updated)); } catch { }
+    try { localStorage.setItem("leaderboard", JSON.stringify(updated)); } catch { }
   };
 
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -377,34 +375,32 @@ export default function SchoolMemoryRace() {
 
   // Daily streak
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await window.storage.get("streak");
-        if (res) {
-          const data = JSON.parse(res.value);
-          const today = new Date().toDateString();
-          const yesterday = new Date(Date.now() - 86400000).toDateString();
-          if (data.lastDay === today) setStreak(data.count);
-          else if (data.lastDay === yesterday) setStreak(data.count);
-          else setStreak(0);
-        }
-      } catch {}
-    })();
+    try {
+      const res = localStorage.getItem("streak");
+      if (res) {
+        const data = JSON.parse(res);
+        const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        if (data.lastDay === today) setStreak(data.count);
+        else if (data.lastDay === yesterday) setStreak(data.count);
+        else setStreak(0);
+      }
+    } catch {}
   }, []);
 
-  const updateStreak = async () => {
+  const updateStreak = () => {
     try {
-      const res = await window.storage.get("streak");
+      const res = localStorage.getItem("streak");
       const today = new Date().toDateString();
       let count = 1;
       if (res) {
-        const data = JSON.parse(res.value);
+        const data = JSON.parse(res);
         const yesterday = new Date(Date.now() - 86400000).toDateString();
         if (data.lastDay === today) count = data.count;
         else if (data.lastDay === yesterday) count = data.count + 1;
       }
       setStreak(count);
-      await window.storage.set("streak", JSON.stringify({ count, lastDay: today }));
+      localStorage.setItem("streak", JSON.stringify({ count, lastDay: today }));
     } catch {}
   };
 
