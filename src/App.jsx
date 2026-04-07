@@ -427,7 +427,7 @@ export default function SchoolMemoryRace() {
   // Share app (for menu - שתף חבר)
   const shareApp = () => {
     const msg = encodeURIComponent(
-      `🎒 גילית כבר את Memory Race?\n\nמשחק זיכרון ממכר שמשפר את הראש! 🧠✨\nאני כבר מכור/ה, תנסה גם!\n\n📲 שחק/י עכשיו: ${window.location.href}`
+      `🎒 גילית כבר את Memory Race?\n\n📲 שחק/י עכשיו: ${window.location.href}`
     );
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
