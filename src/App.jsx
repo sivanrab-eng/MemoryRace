@@ -338,6 +338,10 @@ export default function MemoryRace() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [records, setRecords] = useState([]);
   const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [gameMode, setGameMode] = useState("timed"); // "timed" | "relaxed"
+  const [moves, setMoves] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const elapsedRef = useRef(null);
   const CONTINUE_COST = 200;
 
   const timerRef = useRef(null);
@@ -430,9 +434,13 @@ export default function MemoryRace() {
 
   // Challenge friend (for game screens - אתגר חבר)
   const sendChallenge = (challengeScore, challengeTime) => {
-    const msg = encodeURIComponent(
-      `🎒🔥 אתגר Memory Race!\n\nסיימתי עם ${challengeScore} נקודות ו-${challengeTime} שניות על השעון! ⏱️\n\n😏 בטוח/ה שאת/ה יכול/ה לנצח אותי?\nבוא/י נראה מי המוח פה 🧠\n\n🔗 ${window.location.href}`
-    );
+    const msg = gameMode === "relaxed"
+      ? encodeURIComponent(
+          `🎒😌 אתגר Memory Race – מצב רגוע!\n\nסיימתי עם ${challengeScore} נקודות ב-${moves} מהלכים! 🧠\n\n😏 בטוח/ה שאת/ה יכול/ה בפחות מהלכים?\n\n🔗 ${window.location.href}`
+        )
+      : encodeURIComponent(
+          `🎒🔥 אתגר Memory Race!\n\nסיימתי עם ${challengeScore} נקודות ו-${challengeTime} שניות על השעון! ⏱️\n\n😏 בטוח/ה שאת/ה יכול/ה לנצח אותי?\nבוא/י נראה מי המוח פה 🧠\n\n🔗 ${window.location.href}`
+        );
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
 
@@ -455,6 +463,13 @@ export default function MemoryRace() {
   // Timer
   useEffect(() => {
     if (screen !== "game" || preview) return;
+    if (gameMode === "relaxed") {
+      // Count up in relaxed mode
+      elapsedRef.current = setInterval(() => {
+        setElapsed((e) => e + 1);
+      }, 1000);
+      return () => clearInterval(elapsedRef.current);
+    }
     timerRef.current = setInterval(() => {
       setTime((t) => {
         if (t <= 1) {
@@ -466,7 +481,7 @@ export default function MemoryRace() {
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [screen, preview]);
+  }, [screen, preview, gameMode]);
 
   const level = LEVELS[levelIdx];
 
@@ -484,7 +499,11 @@ export default function MemoryRace() {
     matchCountRef.current = 0;
     lockRef.current = false;
     setScreen("game");
-    if (idx === 0) setTime(INITIAL_TIME);
+    if (idx === 0) {
+      setTime(INITIAL_TIME);
+      setMoves(0);
+      setElapsed(0);
+    }
     setTimeout(() => setPreview(false), PREVIEW_TIME);
   }, []);
 
@@ -497,6 +516,7 @@ export default function MemoryRace() {
 
     if (newFlipped.length === 2) {
       lockRef.current = true;
+      setMoves((m) => m + 1);
       const [i1, i2] = newFlipped;
 
       if (cards[i1].word === cards[i2].word) {
@@ -510,15 +530,18 @@ export default function MemoryRace() {
             return ns;
           });
           setFlipped([]);
-          setTime((t) => t + BONUS_TIME);
+          if (gameMode === "timed") {
+            setTime((t) => t + BONUS_TIME);
+            setBonusAnim("+3s");
+          }
           setScore((s) => s + 100 + combo * 25);
           setCombo((c) => c + 1);
-          setBonusAnim("+3s");
-          setTimeout(() => setBonusAnim(null), 900);
+          if (gameMode === "timed") setTimeout(() => setBonusAnim(null), 900);
 
           matchCountRef.current += 1;
           if (matchCountRef.current === level.words.length) {
             clearInterval(timerRef.current);
+            if (gameMode === "relaxed") clearInterval(elapsedRef.current);
             setTimeout(() => {
               if (levelIdx === LEVELS.length - 1) {
                 setShowSparkles(true);
@@ -534,10 +557,12 @@ export default function MemoryRace() {
         // Mismatch
         setTimeout(() => {
           setFlipped([]);
-          setTime((t) => Math.max(0, t - PENALTY_TIME));
+          if (gameMode === "timed") {
+            setTime((t) => Math.max(0, t - PENALTY_TIME));
+            setBonusAnim("-1s");
+            setTimeout(() => setBonusAnim(null), 900);
+          }
           setCombo(0);
-          setBonusAnim("-1s");
-          setTimeout(() => setBonusAnim(null), 900);
           lockRef.current = false;
         }, 800);
       }
@@ -615,26 +640,48 @@ export default function MemoryRace() {
             }}>
               Memory Race
             </h1>
-            <p style={{ color: "#ffffff99", fontSize: "clamp(14px, 3vw, 18px)", margin: "0 0 36px" }}>
-              Match the items before time runs out!
+            <p style={{ color: "#ffffff99", fontSize: "clamp(14px, 3vw, 18px)", margin: "0 0 28px" }}>
+              Match the items · learn new words!
             </p>
 
-            <button
-              onClick={() => { setLevelIdx(0); setScore(0); setTime(INITIAL_TIME); startLevel(0); }}
-              style={{
-                padding: "16px 48px", borderRadius: 50, border: "none",
-                background: "linear-gradient(135deg, #FFD700, #FFA000)",
-                color: "#3d2500", fontSize: 20, fontWeight: 700, cursor: "pointer",
-                fontFamily: "'Fredoka', sans-serif",
-                boxShadow: "0 6px 25px rgba(255,160,0,0.4), inset 0 1px 0 rgba(255,255,255,0.4)",
-                animation: "pulse 2s ease-in-out infinite",
-                transition: "transform 0.15s",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
-              onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-            >
-              ▶ Start Game
-            </button>
+            {/* Mode selection cards */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 16, maxWidth: 340, width: "100%" }}>
+              <button
+                onClick={() => { setGameMode("timed"); setLevelIdx(0); setScore(0); setTime(INITIAL_TIME); startLevel(0); }}
+                style={{
+                  flex: 1, padding: "18px 12px", borderRadius: 18, border: "3px solid #FFD700",
+                  background: "linear-gradient(145deg, rgba(255,215,0,0.15), rgba(255,160,0,0.08))",
+                  cursor: "pointer", fontFamily: "'Fredoka', sans-serif",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                  transition: "transform 0.15s, box-shadow 0.15s",
+                  boxShadow: "0 4px 15px rgba(255,160,0,0.2)",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 25px rgba(255,160,0,0.35)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 15px rgba(255,160,0,0.2)"; }}
+              >
+                <span style={{ fontSize: 32 }}>⏱️</span>
+                <span style={{ color: "#FFD700", fontSize: 16, fontWeight: 700 }}>מרוץ זמן</span>
+                <span style={{ color: "#ffffff77", fontSize: 11, fontWeight: 400 }}>45 שניות · מי מהיר?</span>
+              </button>
+
+              <button
+                onClick={() => { setGameMode("relaxed"); setLevelIdx(0); setScore(0); setMoves(0); setElapsed(0); startLevel(0); }}
+                style={{
+                  flex: 1, padding: "18px 12px", borderRadius: 18, border: "3px solid #60a5fa",
+                  background: "linear-gradient(145deg, rgba(96,165,250,0.15), rgba(96,165,250,0.08))",
+                  cursor: "pointer", fontFamily: "'Fredoka', sans-serif",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                  transition: "transform 0.15s, box-shadow 0.15s",
+                  boxShadow: "0 4px 15px rgba(96,165,250,0.2)",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 25px rgba(96,165,250,0.35)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 15px rgba(96,165,250,0.2)"; }}
+              >
+                <span style={{ fontSize: 32 }}>😌</span>
+                <span style={{ color: "#60a5fa", fontSize: 16, fontWeight: 700 }}>מצב רגוע</span>
+                <span style={{ color: "#ffffff77", fontSize: 11, fontWeight: 400 }}>בלי זמן · בלי לחץ</span>
+              </button>
+            </div>
 
             <button
               onClick={() => setShowLeaderboard(true)}
@@ -833,12 +880,28 @@ export default function MemoryRace() {
           <h1 style={{ color: "#FFD700", fontSize: "clamp(26px, 6vw, 40px)", margin: "0 0 8px" }}>
             Amazing!
           </h1>
-          <p style={{ color: "#ffffffcc", fontSize: 18, margin: "0 0 6px" }}>
-            Time Remaining: <strong style={{ color: "#4ade80" }}>{time}s</strong>
-          </p>
-          <p style={{ color: "#FFD700", fontSize: 24, margin: "0 0 24px" }}>
-            Final Score: {score}
-          </p>
+          {gameMode === "timed" ? (
+            <>
+              <p style={{ color: "#ffffffcc", fontSize: 18, margin: "0 0 6px" }}>
+                Time Remaining: <strong style={{ color: "#4ade80" }}>{time}s</strong>
+              </p>
+              <p style={{ color: "#FFD700", fontSize: 24, margin: "0 0 24px" }}>
+                Final Score: {score}
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ color: "#ffffffcc", fontSize: 18, margin: "0 0 6px" }}>
+                זמן: <strong style={{ color: "#60a5fa" }}>{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</strong>
+              </p>
+              <p style={{ color: "#60a5fa", fontSize: 24, margin: "0 0 6px" }}>
+                {moves} מהלכים
+              </p>
+              <p style={{ color: "#FFD700", fontSize: 20, margin: "0 0 24px" }}>
+                Score: {score}
+              </p>
+            </>
+          )}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
             <button
               onClick={() => setScreen("menu")}
@@ -897,7 +960,11 @@ export default function MemoryRace() {
             {level.label} Complete!
           </h1>
           <p style={{ color: "#ffffffaa", fontSize: 16, margin: "0 0 6px" }}>
-            Time left: <strong style={{ color: "#FFD700" }}>{time}s</strong> · Score: <strong style={{ color: "#FFD700" }}>{score}</strong>
+            {gameMode === "timed" ? (
+              <>Time left: <strong style={{ color: "#FFD700" }}>{time}s</strong> · Score: <strong style={{ color: "#FFD700" }}>{score}</strong></>
+            ) : (
+              <>מהלכים: <strong style={{ color: "#60a5fa" }}>{moves}</strong> · זמן: <strong style={{ color: "#60a5fa" }}>{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</strong></>
+            )}
           </p>
           <p style={{ color: "#ffffffaa", fontSize: 14, margin: "0 0 24px" }}>
             Next: {LEVELS[levelIdx + 1]?.label}
@@ -969,22 +1036,35 @@ export default function MemoryRace() {
             </div>
           </div>
           <div style={{ textAlign: "center", position: "relative" }}>
-            <div style={{
-              color: time <= 10 ? "#ff4444" : "#fff",
-              fontSize: 32, fontWeight: 700,
-              animation: time <= 10 ? "timerWarning 0.5s ease infinite" : "none",
-              fontVariantNumeric: "tabular-nums",
-            }}>
-              {time}s
-            </div>
-            {bonusAnim && (
-              <div style={{
-                position: "absolute", top: -8, right: -30, fontSize: 16, fontWeight: 700,
-                color: bonusAnim.startsWith("+") ? "#4ade80" : "#ff6b6b",
-                animation: "bonusPop 0.8s ease-out forwards",
-                whiteSpace: "nowrap",
-              }}>
-                {bonusAnim}
+            {gameMode === "timed" ? (
+              <>
+                <div style={{
+                  color: time <= 10 ? "#ff4444" : "#fff",
+                  fontSize: 32, fontWeight: 700,
+                  animation: time <= 10 ? "timerWarning 0.5s ease infinite" : "none",
+                  fontVariantNumeric: "tabular-nums",
+                }}>
+                  {time}s
+                </div>
+                {bonusAnim && (
+                  <div style={{
+                    position: "absolute", top: -8, right: -30, fontSize: 16, fontWeight: 700,
+                    color: bonusAnim.startsWith("+") ? "#4ade80" : "#ff6b6b",
+                    animation: "bonusPop 0.8s ease-out forwards",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {bonusAnim}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <div style={{ color: "#60a5fa", fontSize: 24, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                  {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}
+                </div>
+                <div style={{ color: "#ffffff88", fontSize: 11 }}>
+                  {moves} מהלכים
+                </div>
               </div>
             )}
             {preview && (

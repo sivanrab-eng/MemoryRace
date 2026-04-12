@@ -1,4 +1,4 @@
-const CACHE_NAME = 'memory-race-v3';
+const CACHE_NAME = 'memory-race-v4';
 const ASSETS = [
   '/MemoryRace/',
   '/MemoryRace/index.html',
