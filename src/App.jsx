@@ -77,15 +77,15 @@ function speak(text) {
 
   const heWord = TRANSLATIONS[text];
   if (heWord) {
-    uEn.onend = () => {
-      const uHe = new SpeechSynthesisUtterance(heWord);
-      uHe.lang = "he-IL";
-      uHe.rate = 0.85;
-      uHe.pitch = 1.1;
-      window.speechSynthesis.speak(uHe);
-    };
+    const uHe = new SpeechSynthesisUtterance(heWord);
+    uHe.lang = "he-IL";
+    uHe.rate = 0.85;
+    uHe.pitch = 1.1;
+    uHe.onend = () => window.speechSynthesis.speak(uEn);
+    window.speechSynthesis.speak(uHe);
+  } else {
+    window.speechSynthesis.speak(uEn);
   }
-  window.speechSynthesis.speak(uEn);
 }
 
 /* ─── Shuffle ─── */
@@ -178,7 +178,7 @@ function Card({ card, isFlipped, isMatched, onClick, index, preview }) {
             transition: "all 0.3s",
           }}
         >
-          <span style={{ fontSize: "clamp(20px, 4vw, 34px)", lineHeight: 1, filter: isMatched ? "drop-shadow(0 0 6px rgba(0,0,0,0.2))" : "none" }}>
+          <span style={{ fontSize: "clamp(44px, 9vw, 80px)", lineHeight: 1, filter: isMatched ? "drop-shadow(0 0 6px rgba(0,0,0,0.2))" : "none" }}>
             {item.emoji}
           </span>
           <span
