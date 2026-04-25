@@ -68,24 +68,27 @@ const TRANSLATIONS = {
 
 /* ─── TTS helper ─── */
 function speak(text) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const uEn = new SpeechSynthesisUtterance(text);
-  uEn.lang = "en-US";
-  uEn.rate = 0.9;
-  uEn.pitch = 1.1;
+  return new Promise((resolve) => {
+    if (!window.speechSynthesis) { resolve(); return; }
+    window.speechSynthesis.cancel();
+    const uEn = new SpeechSynthesisUtterance(text);
+    uEn.lang = "en-US";
+    uEn.rate = 0.9;
+    uEn.pitch = 1.1;
+    uEn.onend = resolve;
 
-  const heWord = TRANSLATIONS[text];
-  if (heWord) {
-    const uHe = new SpeechSynthesisUtterance(heWord);
-    uHe.lang = "he-IL";
-    uHe.rate = 0.85;
-    uHe.pitch = 1.1;
-    uHe.onend = () => window.speechSynthesis.speak(uEn);
-    window.speechSynthesis.speak(uHe);
-  } else {
-    window.speechSynthesis.speak(uEn);
-  }
+    const heWord = TRANSLATIONS[text];
+    if (heWord) {
+      const uHe = new SpeechSynthesisUtterance(heWord);
+      uHe.lang = "he-IL";
+      uHe.rate = 0.85;
+      uHe.pitch = 1.1;
+      uHe.onend = () => window.speechSynthesis.speak(uEn);
+      window.speechSynthesis.speak(uHe);
+    } else {
+      window.speechSynthesis.speak(uEn);
+    }
+  });
 }
 
 /* ─── Shuffle ─── */
@@ -363,6 +366,7 @@ export default function MemoryRace() {
   const [gameMode, setGameMode] = useState("timed"); // "timed" | "relaxed"
   const [moves, setMoves] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [showNextButton, setShowNextButton] = useState(false);
   const elapsedRef = useRef(null);
   const CONTINUE_COST = 200;
 
@@ -520,6 +524,7 @@ export default function MemoryRace() {
     setCombo(0);
     matchCountRef.current = 0;
     lockRef.current = false;
+    setShowNextButton(false);
     setScreen("game");
     if (idx === 0) {
       setTime(INITIAL_TIME);
@@ -534,59 +539,59 @@ export default function MemoryRace() {
 
     const newFlipped = [...flipped, index];
     setFlipped(newFlipped);
-    speak(cards[index].word);
+
+    const speakPromise = speak(cards[index].word);
 
     if (newFlipped.length === 2) {
       lockRef.current = true;
       setMoves((m) => m + 1);
       const [i1, i2] = newFlipped;
 
-      if (cards[i1].word === cards[i2].word) {
-        // Match!
-        setTimeout(() => {
-          speak(`This is a ${cards[i1].word}!`);
-          setMatched((prev) => {
-            const ns = new Set(prev);
-            ns.add(cards[i1].uid);
-            ns.add(cards[i2].uid);
-            return ns;
-          });
-          setFlipped([]);
-          if (gameMode === "timed") {
-            setTime((t) => t + BONUS_TIME);
-            setBonusAnim("+3s");
-          }
-          setScore((s) => s + 100 + combo * 25);
-          setCombo((c) => c + 1);
-          if (gameMode === "timed") setTimeout(() => setBonusAnim(null), 900);
+      const processMatch = () => {
+        if (cards[i1].word === cards[i2].word) {
+          setTimeout(() => {
+            speak(`This is a ${cards[i1].word}!`);
+            setMatched((prev) => {
+              const ns = new Set(prev);
+              ns.add(cards[i1].uid);
+              ns.add(cards[i2].uid);
+              return ns;
+            });
+            setFlipped([]);
+            if (gameMode === "timed") {
+              setTime((t) => t + BONUS_TIME);
+              setBonusAnim("+3s");
+            }
+            setScore((s) => s + 100 + combo * 25);
+            setCombo((c) => c + 1);
+            if (gameMode === "timed") setTimeout(() => setBonusAnim(null), 900);
 
-          matchCountRef.current += 1;
-          if (matchCountRef.current === level.words.length) {
-            clearInterval(timerRef.current);
-            if (gameMode === "relaxed") clearInterval(elapsedRef.current);
-            setTimeout(() => {
-              if (levelIdx === LEVELS.length - 1) {
-                setShowSparkles(true);
-                setShowBackpack(true);
-              } else {
-                setShowBackpack(true);
-              }
-            }, 500);
-          }
-          lockRef.current = false;
-        }, 400);
+            matchCountRef.current += 1;
+            if (matchCountRef.current === level.words.length) {
+              clearInterval(timerRef.current);
+              if (gameMode === "relaxed") clearInterval(elapsedRef.current);
+              setTimeout(() => setShowNextButton(true), 500);
+            }
+            lockRef.current = false;
+          }, gameMode === "relaxed" ? 0 : 400);
+        } else {
+          setTimeout(() => {
+            setFlipped([]);
+            if (gameMode === "timed") {
+              setTime((t) => Math.max(0, t - PENALTY_TIME));
+              setBonusAnim("-1s");
+              setTimeout(() => setBonusAnim(null), 900);
+            }
+            setCombo(0);
+            lockRef.current = false;
+          }, gameMode === "relaxed" ? 0 : 800);
+        }
+      };
+
+      if (gameMode === "relaxed") {
+        speakPromise.then(processMatch);
       } else {
-        // Mismatch
-        setTimeout(() => {
-          setFlipped([]);
-          if (gameMode === "timed") {
-            setTime((t) => Math.max(0, t - PENALTY_TIME));
-            setBonusAnim("-1s");
-            setTimeout(() => setBonusAnim(null), 900);
-          }
-          setCombo(0);
-          lockRef.current = false;
-        }, 800);
+        processMatch();
       }
     }
   };
@@ -1154,6 +1159,38 @@ export default function MemoryRace() {
             transition: "width 0.4s ease",
           }} />
         </div>
+
+        {/* Green next-level button */}
+        {showNextButton && (
+          <div style={{
+            position: "fixed", bottom: 0, left: 0, right: 0,
+            padding: "20px 24px 32px",
+            background: "linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%)",
+            display: "flex", justifyContent: "center", zIndex: 200,
+          }}>
+            <button
+              onClick={() => {
+                setShowNextButton(false);
+                if (levelIdx === LEVELS.length - 1) {
+                  setShowSparkles(true);
+                  setShowBackpack(true);
+                } else {
+                  setShowBackpack(true);
+                }
+              }}
+              style={{
+                padding: "16px 56px", borderRadius: 50, border: "none",
+                background: "linear-gradient(135deg, #4ade80, #22c55e)",
+                color: "#0a2e14", fontSize: 20, fontWeight: 700, cursor: "pointer",
+                fontFamily: "'Fredoka', sans-serif",
+                boxShadow: "0 6px 28px rgba(34,197,94,0.55)",
+                animation: "pulse 1.5s ease-in-out infinite",
+              }}
+            >
+              {levelIdx === LEVELS.length - 1 ? "🏆 סיימת!" : "הבא ←"}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
