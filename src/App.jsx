@@ -55,15 +55,37 @@ const INITIAL_TIME = 45;
 const BONUS_TIME = 3;
 const PENALTY_TIME = 1;
 
+/* ─── Hebrew translations ─── */
+const TRANSLATIONS = {
+  "Book": "ספר", "Pen": "עט", "Chair": "כיסא", "Teacher": "מורה",
+  "Student": "תלמיד", "Table": "שולחן", "Bag": "תיק", "Pencil": "עיפרון",
+  "Classroom": "כיתה", "Board": "לוח", "Eraser": "מחק", "Sharpener": "מחדד",
+  "Ruler": "סרגל", "Scissors": "מספריים", "Glue": "דבק", "Notebook": "מחברת",
+  "Computer": "מחשב", "Library": "ספרייה", "Playground": "מגרש משחקים",
+  "Lunchbox": "קופסת אוכל", "Colors": "צבעים", "Map": "מפה",
+  "Clock": "שעון", "Bell": "פעמון",
+};
+
 /* ─── TTS helper ─── */
 function speak(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  u.rate = 0.9;
-  u.pitch = 1.1;
-  window.speechSynthesis.speak(u);
+  const uEn = new SpeechSynthesisUtterance(text);
+  uEn.lang = "en-US";
+  uEn.rate = 0.9;
+  uEn.pitch = 1.1;
+
+  const heWord = TRANSLATIONS[text];
+  if (heWord) {
+    uEn.onend = () => {
+      const uHe = new SpeechSynthesisUtterance(heWord);
+      uHe.lang = "he-IL";
+      uHe.rate = 0.85;
+      uHe.pitch = 1.1;
+      window.speechSynthesis.speak(uHe);
+    };
+  }
+  window.speechSynthesis.speak(uEn);
 }
 
 /* ─── Shuffle ─── */
