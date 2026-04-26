@@ -1123,15 +1123,15 @@ export default function MemoryRace() {
 
         {/* Card Grid */}
         <div style={{
-          flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "12px 12px 24px",
+          flex: 1, display: "flex", alignItems: "stretch", justifyContent: "center",
+          padding: "6px 6px 8px",
         }}>
           <div style={{
             display: "grid",
             gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-            gap: "clamp(6px, 1.5vw, 12px)",
+            gridAutoRows: "1fr",
+            gap: "clamp(4px, 1vw, 8px)",
             width: "100%",
-            maxWidth: 520,
           }}>
             {cards.map((card, i) => (
               <Card
