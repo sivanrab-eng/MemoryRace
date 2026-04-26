@@ -73,14 +73,14 @@ function speak(text) {
     window.speechSynthesis.cancel();
     const uEn = new SpeechSynthesisUtterance(text);
     uEn.lang = "en-US";
-    uEn.rate = 1.5;
+    uEn.rate = 5;
     uEn.pitch = 1.1;
 
     const heWord = TRANSLATIONS[text];
     if (heWord) {
       const uHe = new SpeechSynthesisUtterance(heWord);
       uHe.lang = "he-IL";
-      uHe.rate = 1.5;
+      uHe.rate = 5;
       uHe.pitch = 1.1;
       uHe.onend = () => window.speechSynthesis.speak(uEn);
       uEn.onend = resolve;
