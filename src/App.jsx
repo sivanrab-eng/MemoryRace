@@ -83,8 +83,10 @@ function speak(text) {
       uHe.lang = "he-IL";
       uHe.rate = 0.85;
       uHe.pitch = 1.1;
-      uHe.onend = () => window.speechSynthesis.speak(uEn);
-      window.speechSynthesis.speak(uHe);
+      uEn.onend = () => window.speechSynthesis.speak(uHe);
+      uEn.onend = resolve;
+      window.speechSynthesis.speak(uEn);
+      uEn.onend = () => { window.speechSynthesis.speak(uHe); resolve(); };
     } else {
       window.speechSynthesis.speak(uEn);
     }
