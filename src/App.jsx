@@ -73,21 +73,21 @@ function speak(text) {
     window.speechSynthesis.cancel();
     const uEn = new SpeechSynthesisUtterance(text);
     uEn.lang = "en-US";
-    uEn.rate = 5;
+    uEn.rate = 2;
     uEn.pitch = 1.1;
 
     const heWord = TRANSLATIONS[text];
     if (heWord) {
       const uHe = new SpeechSynthesisUtterance(heWord);
       uHe.lang = "he-IL";
-      uHe.rate = 5;
+      uHe.rate = 2;
       uHe.pitch = 1.1;
       uHe.onend = () => window.speechSynthesis.speak(uEn);
       uEn.onend = resolve;
-      setTimeout(() => window.speechSynthesis.speak(uHe), 0);
+      window.speechSynthesis.speak(uHe);
     } else {
       uEn.onend = resolve;
-      setTimeout(() => window.speechSynthesis.speak(uEn), 0);
+      window.speechSynthesis.speak(uEn);
     }
   });
 }
