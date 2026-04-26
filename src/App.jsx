@@ -637,7 +637,7 @@ export default function MemoryRace() {
       0%,100% { color: #e74c3c; }
       50% { color: #ff6b6b; }
     }
-    body { margin:0; overflow-x:hidden; }
+    body { margin:0; overflow:hidden; } html { overflow:hidden; }
   `;
 
   /* ─── MENU SCREEN ─── */
