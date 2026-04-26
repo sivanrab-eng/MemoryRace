@@ -75,7 +75,6 @@ function speak(text) {
     uEn.lang = "en-US";
     uEn.rate = 0.9;
     uEn.pitch = 1.1;
-    uEn.onend = resolve;
 
     const heWord = TRANSLATIONS[text];
     if (heWord) {
@@ -83,12 +82,13 @@ function speak(text) {
       uHe.lang = "he-IL";
       uHe.rate = 0.85;
       uHe.pitch = 1.1;
-      uEn.onend = () => window.speechSynthesis.speak(uHe);
+      uHe.onend = () => window.speechSynthesis.speak(uEn);
       uEn.onend = resolve;
-      window.speechSynthesis.speak(uEn);
-      uEn.onend = () => { window.speechSynthesis.speak(uHe); resolve(); };
+      // Speak immediately with no delay
+      setTimeout(() => window.speechSynthesis.speak(uHe), 0);
     } else {
-      window.speechSynthesis.speak(uEn);
+      uEn.onend = resolve;
+      setTimeout(() => window.speechSynthesis.speak(uEn), 0);
     }
   });
 }
