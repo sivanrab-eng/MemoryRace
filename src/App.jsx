@@ -182,7 +182,7 @@ function Card({ card, isFlipped, isMatched, onClick, index, preview }) {
             transition: "all 0.3s",
           }}
         >
-          <span style={{ fontSize: "clamp(44px, 9vw, 80px)", lineHeight: 1, filter: isMatched ? "drop-shadow(0 0 6px rgba(0,0,0,0.2))" : "none" }}>
+          <span style={{ fontSize: "clamp(52px, 12vw, 96px)", lineHeight: 1, filter: isMatched ? "drop-shadow(0 0 6px rgba(0,0,0,0.2))" : "none" }}>
             {item.emoji}
           </span>
           <span
@@ -1123,7 +1123,7 @@ export default function MemoryRace() {
 
         {/* Card Grid */}
         <div style={{
-          flex: 1, display: "flex", alignItems: "stretch", justifyContent: "center",
+          flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "center",
           padding: "6px 6px 8px",
         }}>
           <div style={{
